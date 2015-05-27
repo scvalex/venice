@@ -26,6 +26,10 @@ enum Item {
     Asset(Asset),
 }
 
+struct Auction {
+    items: Vec<Item>,
+}
+
 fn main() {
     println!("Hello, world!");
 }
