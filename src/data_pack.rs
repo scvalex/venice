@@ -44,12 +44,6 @@ pub struct Auction {
     items: Vec<ItemId>,
 }
 
-impl Auction {
-    pub fn new() -> Auction {
-        Auction { items: vec![], }
-    }
-}
-
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct DataPack {
     items: Vec<ItemId>,
