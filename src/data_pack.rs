@@ -1,8 +1,7 @@
 use rustc_serialize;
 use rustc_serialize::json;
-use std::io::{Read, Error};
+use std::io;
 use std::fmt;
-use std::fmt::{Display, Formatter};
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Resources {
@@ -58,15 +57,15 @@ pub struct DataPack {
 }
 
 impl DataPack {
-    pub fn load(rdr: &mut Read) -> DataPack {
+    pub fn load(rdr: &mut io::Read) -> DataPack {
         let json = json::Json::from_reader(rdr).unwrap();
         let mut decoder = json::Decoder::new(json);
         rustc_serialize::Decodable::decode(&mut decoder).unwrap()
     }
 }
 
-impl Display for DataPack {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), fmt::Error> {
+impl fmt::Display for DataPack {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         fmt.write_str(&format!("{:?}", self))
     }
 }
