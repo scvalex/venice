@@ -1,15 +1,15 @@
 #[derive(Debug)]
-struct Resources {
+pub struct Resources {
     force: u32,
     popularity: u32,
     influence: u32,
 }
 
 #[derive(Debug)]
-struct Money(u32);
+pub struct Money(u32);
 
 #[derive(Debug)]
-struct Agenda {
+pub struct Agenda {
     id: String,
     title: String,
     flavour_text: String,
@@ -18,7 +18,7 @@ struct Agenda {
 }
 
 #[derive(Debug)]
-struct Asset {
+pub struct Asset {
     id: String,
     title: String,
     flavour_text: String,
@@ -26,7 +26,7 @@ struct Asset {
 }
 
 #[derive(Debug)]
-enum Item {
+pub enum Item {
     Agenda(Agenda),
     Asset(Asset),
 }
@@ -40,4 +40,8 @@ impl Auction {
     pub fn new() -> Auction {
         Auction { items: vec![], }
     }
+}
+
+pub struct AuctionSchedule {
+    auctions: Vec<Auction>,
 }
