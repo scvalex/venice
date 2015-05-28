@@ -1,3 +1,7 @@
+extern crate rustc_serialize;
+
+mod data_pack;
+
 #[derive(Debug)]
 pub struct Resources {
     force: u32,

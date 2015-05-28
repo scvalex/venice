@@ -7,3 +7,6 @@ homepage = "https://github.com/scvalex/venice"
 repository = "https://github.com/scvalex/venice.git"
 readme = "README.md"
 license = "GPL-3.0"
+
+[dependencies]
+rustc-serialize = "0.3"
