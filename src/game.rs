@@ -6,7 +6,7 @@ use data_pack::*;
 use event::Event;
 
 #[derive(Debug)]
-pub struct Player<'a> {
+struct Player<'a> {
     id: &'a PlayerId,
 }
 
@@ -17,20 +17,20 @@ impl<'a> Player<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Bid<'a> {
+struct Bid<'a> {
     player: &'a PlayerId,
     quantity: Quantity,
     price: Money,
 }
 
 #[derive(Debug)]
-pub struct Bids<'a> {
+struct Bids<'a> {
     winning_bids: HashSet<Bid<'a>>,
     other_bids: HashSet<Bid<'a>>,
 }
 
 #[derive(Debug)]
-pub struct CompletedAuction<'a> {
+struct CompletedAuction<'a> {
     id: AuctionId,
     bids: HashMap<&'a ItemId, Bids<'a>>,
 }
