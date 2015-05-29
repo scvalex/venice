@@ -1,20 +1,19 @@
 use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
 
+use common::*;
 use data_pack::*;
+use event::Event;
 
 #[derive(Debug)]
-pub struct GameId(String);
+pub struct Player<'a> {
+    id: &'a PlayerId,
+}
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct PlayerId(String);
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct Quantity(u32);
-
-#[derive(Debug)]
-pub struct Player {
-    id: PlayerId,
+impl<'a> Player<'a> {
+    fn new(id: &PlayerId) -> Player {
+        Player { id: id, }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -42,7 +41,7 @@ pub struct Game<'a> {
     data_pack: &'a DataPack,
     completed_auctions: Vec<CompletedAuction<'a>>,
     pending_auctions: LinkedList<&'a AuctionId>,
-    players: HashMap<&'a PlayerId, Player>,
+    players: HashMap<&'a PlayerId, Player<'a>>,
 }
 
 impl<'a> Game<'a> {
@@ -55,6 +54,15 @@ impl<'a> Game<'a> {
             completed_auctions: vec![],
             pending_auctions: pending_auctions,
             players: HashMap::new(),
+        }
+    }
+
+    pub fn apply_event(&mut self, ev: &'a Event) {
+        match ev {
+            &Event::JoinGame(gid, pid) => {
+                assert_eq!(self.id, gid);
+                self.players.insert(pid, Player::new(pid));
+            }
         }
     }
 }

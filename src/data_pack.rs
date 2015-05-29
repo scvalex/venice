@@ -4,14 +4,7 @@ use std::fmt;
 use rustc_serialize;
 use rustc_serialize::json;
 
-#[derive(Debug, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
-pub struct Money(u32);
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
-pub struct ItemId(String);
-
-#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
-pub struct AuctionId(String);
+use common::*;
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Resources {
