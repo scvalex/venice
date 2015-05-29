@@ -4,13 +4,6 @@ use std::fmt;
 use rustc_serialize;
 use rustc_serialize::json;
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
-pub struct Resources {
-    force: u32,
-    popularity: u32,
-    influence: u32,
-}
-
 #[derive(Debug, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
 pub struct Money(u32);
 
@@ -19,6 +12,13 @@ pub struct ItemId(String);
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct AuctionId(String);
+
+#[derive(Debug, RustcDecodable, RustcEncodable)]
+pub struct Resources {
+    force: u32,
+    popularity: u32,
+    influence: u32,
+}
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Agenda {
@@ -45,7 +45,7 @@ pub enum Item {
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Auction {
-    id: AuctionId,
+    pub id: AuctionId,
     items: Vec<(u32, ItemId)>,
 }
 

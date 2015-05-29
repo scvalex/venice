@@ -3,11 +3,19 @@ use std::iter::FromIterator;
 
 use data_pack::*;
 
+#[derive(Debug)]
+pub struct GameId(String);
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct PlayerId(String);
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Quantity(u32);
+
+#[derive(Debug)]
+pub struct Player {
+    id: PlayerId,
+}
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Bid<'a> {
@@ -30,17 +38,23 @@ pub struct CompletedAuction<'a> {
 
 #[derive(Debug)]
 pub struct Game<'a> {
+    id: &'a GameId,
     data_pack: &'a DataPack,
     completed_auctions: Vec<CompletedAuction<'a>>,
-    pending_auctions: LinkedList<&'a Auction>,
+    pending_auctions: LinkedList<&'a AuctionId>,
+    players: HashMap<&'a PlayerId, Player>,
 }
 
 impl<'a> Game<'a> {
-    pub fn new(data_pack: &DataPack) -> Game {
+    pub fn new(id: &'a GameId, data_pack: &'a DataPack) -> Game<'a> {
+        let pending_auctions =
+            FromIterator::from_iter(data_pack.auctions.iter().map(|a| &a.id));
         Game {
+            id: id,
             data_pack: &data_pack,
             completed_auctions: vec![],
-            pending_auctions: FromIterator::from_iter(data_pack.auctions.iter()),
+            pending_auctions: pending_auctions,
+            players: HashMap::new(),
         }
     }
 }
