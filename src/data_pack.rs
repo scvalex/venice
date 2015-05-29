@@ -1,7 +1,8 @@
-use rustc_serialize;
-use rustc_serialize::json;
 use std::io;
 use std::fmt;
+
+use rustc_serialize;
+use rustc_serialize::json;
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Resources {
@@ -10,11 +11,14 @@ pub struct Resources {
     influence: u32,
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
 pub struct Money(u32);
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
 pub struct ItemId(String);
+
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
+pub struct AuctionId(String);
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Agenda {
@@ -39,15 +43,16 @@ pub enum Item {
     Asset(Asset),
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Auction {
-    items: Vec<ItemId>,
+    id: AuctionId,
+    items: Vec<(u32, ItemId)>,
 }
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct DataPack {
-    items: Vec<ItemId>,
-    auctions: Vec<Auction>,
+    pub items: Vec<ItemId>,
+    pub auctions: Vec<Auction>,
 }
 
 impl DataPack {
