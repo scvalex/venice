@@ -1,5 +1,6 @@
 extern crate rustc_serialize;
 
+#[macro_use]
 mod common;
 
 mod data_pack;

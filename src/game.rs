@@ -1,26 +1,40 @@
 use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
+use std::io::Write;
 
 use common::*;
 use data_pack::*;
 use event::Event;
 
-#[derive(Debug)]
-struct Player<'a> {
-    id: &'a PlayerId,
-}
-
-impl<'a> Player<'a> {
-    fn new(id: &PlayerId) -> Player {
-        Player { id: id, }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Bid<'a> {
     player: &'a PlayerId,
+    item: &'a ItemId,
     quantity: Quantity,
     price: Money,
+}
+
+#[derive(Debug)]
+struct Player<'a> {
+    id: &'a PlayerId,
+    resources: Resources,
+    money: Money,
+    bids: HashSet<Bid<'a>>,
+}
+
+impl<'a> Player<'a> {
+    fn new(id: &PlayerId, money: Money) -> Player {
+        Player {
+            id: id,
+            resources: Resources { force: 0, influence: 0, popularity: 0, },
+            money: money,
+            bids: HashSet::new(),
+        }
+    }
+
+    fn place_bid(&mut self, iid: &'a ItemId, qty: Quantity, px: Money) {
+        self.bids.insert(Bid { player: self.id, item: iid, quantity: qty, price: px});
+    }
 }
 
 #[derive(Debug)]
@@ -61,7 +75,15 @@ impl<'a> Game<'a> {
         match ev {
             &Event::JoinGame(gid, pid) => {
                 assert_eq!(self.id, gid);
-                self.players.insert(pid, Player::new(pid));
+                let player = Player::new(pid, self.data_pack.starting_money);
+                self.players.insert(pid, player);
+            }
+            &Event::PlaceBid(gid, pid, iid, qty, px) => {
+                assert_eq!(self.id, gid);
+                match self.players.get_mut(pid) {
+                    None => elog!("player {:?} not in game {:?}", pid, gid),
+                    Some(player) => player.place_bid(iid, qty, px),
+                }
             }
         }
     }

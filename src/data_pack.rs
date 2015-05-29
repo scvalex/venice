@@ -7,13 +7,6 @@ use rustc_serialize::json;
 use common::*;
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
-pub struct Resources {
-    force: u32,
-    popularity: u32,
-    influence: u32,
-}
-
-#[derive(Debug, RustcDecodable, RustcEncodable)]
 pub struct Agenda {
     id: ItemId,
     title: String,
@@ -46,6 +39,7 @@ pub struct Auction {
 pub struct DataPack {
     pub items: Vec<ItemId>,
     pub auctions: Vec<Auction>,
+    pub starting_money: Money,
 }
 
 impl DataPack {
