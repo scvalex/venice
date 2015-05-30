@@ -92,3 +92,17 @@ impl<'a> Game<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use data_pack::*;
+    use common::*;
+
+    #[test]
+    fn game_works() {
+      let _dp = DataPack::load(&mut File::open("res/test_data_pack.json").unwrap());
+      let _g  = Game::new(GameId("1".to_string()), _dp);
+    }
+}

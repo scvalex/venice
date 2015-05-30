@@ -2,7 +2,7 @@ extern crate rustc_serialize;
 extern crate crypto;
 
 #[macro_use]
-mod common;
+pub mod common;
 
 mod data_pack;
 pub use data_pack::DataPack;
