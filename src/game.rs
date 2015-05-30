@@ -1,6 +1,8 @@
 use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::io::Write;
+use std::thread;
+use std::sync::{Arc, Mutex};
 
 use common::*;
 use data_pack::*;
@@ -60,6 +62,7 @@ pub struct Game {
     completed_auctions: Vec<CompletedAuction>,
     pending_auctions: LinkedList<AuctionId>,
     players: HashMap< PlayerId, Player>,
+    min_players: usize,
 }
 
 impl Game {
@@ -72,6 +75,7 @@ impl Game {
             completed_auctions: vec![],
             pending_auctions: pending_auctions,
             players: HashMap::new(),
+            min_players: 5,
         }
     }
 
@@ -103,14 +107,24 @@ impl Game {
         self.players.insert(pid, player);
     }
 
-    // TODO call from a task scheduler of sorts running on a separate thread
-    pub fn game_loop(&self) {
+    pub fn game_loop(&mut self) {
+        self.wait_for_players();
         self.opening_auction();
         for i in 1..5 {
             self.common_auction();
         }
         self.closing_auction();
         self.resolve_winners();
+    }
+
+    pub fn wait_for_players(&self) {
+        let mut done = false;
+        while !done {
+            thread::sleep_ms(1000);
+            if self.players.len() >= self.min_players {
+                done = true;
+            }
+        }
     }
 
     pub fn opening_auction(&self) {
@@ -147,8 +161,10 @@ mod tests {
     use std::fs::File;
     use data_pack::*;
     use common::*;
+    use std::thread;
+    use std::sync::{Arc, Mutex};
 
-    fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money) {
+    fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money, DataPack) {
       let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
 
       let gid = GameId("game1".to_string());
@@ -156,14 +172,13 @@ mod tests {
       let pid = PlayerId("player1".to_string());
       let quant = Quantity(10);
       let sum = Money(10);
-      let mut g  = Game::new(gid.clone(), dp);
-      (g, gid, itemId, pid, quant, sum)
+      let mut g  = Game::new(gid.clone(), dp.clone());
+      (g, gid, itemId, pid, quant, sum, dp)
     }
 
     #[test]
     fn test_bid() {
-      let (mut g,  gid, itemId, pid, quant, sum) = test_setup();
-
+      let (mut g,  gid, itemId, pid, quant, sum, _) = test_setup();
       let join_ev = Event::JoinGame(gid.clone(), pid.clone());
       let bid_ev  = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
       g.apply_event(join_ev);
@@ -176,7 +191,24 @@ mod tests {
 
     #[test]
     fn test_game_loop() {
-      let (mut g,  gid, itemId, pid, quant, sum) = test_setup();
-      g.game_loop();
+      let (mut g,  gid, itemId, pid, quant, sum, dp) = test_setup();
+      let gsafe = Arc::new(Mutex::new(g));
+
+      let grec = gsafe.clone();
+      let handle = thread::spawn(move || {
+          let mut g = grec.lock().unwrap();
+          g.game_loop();
+      });
+
+      for i in 1..10 {
+          let pid = PlayerId(i.to_string());
+          let join_ev = Event::JoinGame(gid.clone(), pid);
+          gsafe.lock().unwrap().apply_event(join_ev);
+      }
+
+      // TODO check some other stuff
+
+      // wait for the game loop to finish
+      handle.join();
     }
 }
