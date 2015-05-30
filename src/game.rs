@@ -21,6 +21,8 @@ struct Player {
     resources: Resources,
     money: Money,
     bids: HashSet<Bid>,
+    agendas: Vec<Agenda>,
+    assets: Vec<Asset>
 }
 
 impl Player {
@@ -30,6 +32,8 @@ impl Player {
             resources: Resources { force: 0, influence: 0, popularity: 0, },
             money: money,
             bids: HashSet::new(),
+            agendas: Vec::new(),
+            assets: Vec::new()
         }
     }
 
@@ -63,6 +67,8 @@ pub struct Game {
     pending_auctions: LinkedList<AuctionId>,
     players: HashMap< PlayerId, Player>,
     min_players: usize,
+    assets: Vec<Asset>,
+    agendas: Vec<Agenda>,
 }
 
 impl Game {
@@ -71,11 +77,13 @@ impl Game {
             FromIterator::from_iter(data_pack.auctions.iter().map(|a| a.id.clone()));
         Game {
             id: id,
-            data_pack: data_pack,
+            data_pack: data_pack.clone(),
             completed_auctions: vec![],
             pending_auctions: pending_auctions,
             players: HashMap::new(),
-            min_players: 5,
+            min_players: 2,
+            assets: data_pack.assets,
+            agendas: data_pack.agendas
         }
     }
 
@@ -90,7 +98,7 @@ impl Game {
         }
     }
 
-    pub fn place_bid(&mut self,
+    fn place_bid(&mut self,
                      gid: GameId, pid: PlayerId,
                      iid: ItemId, qty: Quantity,
                      px: Money) {
@@ -101,12 +109,13 @@ impl Game {
         }
     }
 
-    pub fn join_game(&mut self, gid: GameId, pid: PlayerId) {
+    fn join_game(&mut self, gid: GameId, pid: PlayerId) {
         assert_eq!(self.id, gid);
         let player = Player::new(pid.clone(), self.data_pack.starting_money);
         self.players.insert(pid, player);
     }
 
+    // main game loop. run on a separate thread  since it will sleep waiting for events
     pub fn game_loop(&mut self) {
         self.wait_for_players();
         self.opening_auction();
@@ -117,7 +126,7 @@ impl Game {
         self.resolve_winners();
     }
 
-    pub fn wait_for_players(&self) {
+    fn wait_for_players(&self) {
         let mut done = false;
         while !done {
             thread::sleep_ms(1000);
@@ -127,25 +136,25 @@ impl Game {
         }
     }
 
-    pub fn opening_auction(&self) {
+    fn opening_auction(&self) {
         // wait for bids
         self.resolve_bids();
     }
 
-    pub fn common_auction(&self) {
+    fn common_auction(&self) {
         // wait for bids
         self.resolve_bids();
     }
 
-    pub fn closing_auction(&self) {
+    fn closing_auction(&self) {
         // wait for bids
         self.resolve_bids();
     }
 
-    pub fn resolve_winners(&self) {
+    fn resolve_winners(&self) {
     }
 
-    pub fn resolve_bids(&self) {
+    fn resolve_bids(&self) {
         // TODO higher bid wins and loses money
 
     }
@@ -200,7 +209,7 @@ mod tests {
           g.game_loop();
       });
 
-      for i in 1..10 {
+      for i in 0..2 {
           let pid = PlayerId(i.to_string());
           let join_ev = Event::JoinGame(gid.clone(), pid);
           gsafe.lock().unwrap().apply_event(join_ev);

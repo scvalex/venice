@@ -18,7 +18,7 @@ pub struct ItemId(pub String);
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct AuctionId(String);
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Resources {
     pub force: u32,
     pub popularity: u32,
