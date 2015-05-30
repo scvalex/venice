@@ -29,8 +29,8 @@ impl User {
     }
 }
 
-pub struct Server<'a> {
-    games: HashMap<GameId, Game<'a>>,
+pub struct Server {
+    games: HashMap<GameId, Game>,
     users: HashMap<UserId, User>,
 }
 
@@ -39,17 +39,17 @@ pub enum Event<'a> {
     NewUser(UserId, &'a str),
 }
 
-impl<'a> Server<'a> {
-    pub fn new() -> Server<'a> {
+impl Server {
+    pub fn new() -> Server {
         Server {
             games: HashMap::new(),
             users: HashMap::new(),
         }
     }
 
-    pub fn handle_event(&mut self, ev: &'a Event) {
+    pub fn handle_event(&mut self, ev: Event) {
         match ev {
-            &Event::NewGame(ref gid, dp) => {
+            Event::NewGame(ref gid, dp) => {
                 match self.games.get(gid) {
                     Some(..) => {
                         elog!("game {:?} already exists", gid);
@@ -61,7 +61,7 @@ impl<'a> Server<'a> {
                     }
                 }
             }
-            &Event::NewUser(ref uid, pass) => {
+            Event::NewUser(ref uid, pass) => {
                 match self.users.get(uid) {
                     Some(..) => {
                         elog!("user {:?} already exists", uid);
