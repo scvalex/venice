@@ -33,35 +33,53 @@ Commands:
 ";
 
 fn handle_client_connection<R, W>(conn: Connection<R, W>)
-    where R: std::io::Read, W: std::io::Write
+    where R: std::io::Read + Send, W: 'static + std::io::Write + Send
 {
     use websocket::Message;
+    use std::sync::mpsc::channel;
     let req = conn.read_request().unwrap();
     let resp = req.accept();
     let (mut sender, mut receiver) = resp.send().unwrap().split();
+    let (tx, rx) = channel();
+    thread::spawn(move || {
+        loop {
+            let msg = match rx.recv() {
+                Ok(msg) => msg,
+                Err(_) => return,
+            };
+            match msg {
+                Message::Close(_) => {
+                    let _ = sender.send_message(msg);
+                    return;
+                }
+                _ => (),
+            }
+            let () = sender.send_message(msg).unwrap();
+        }
+    });
     for msg in receiver.incoming_messages::<Message>() {
         let msg = match msg {
             Ok(msg) => msg,
             Err(msg) => {
                 elog!("connection error: {}", msg);
-                let _ = sender.send_message(Message::Close(None));
+                let _ = tx.send(Message::Close(None));
                 return;
             }
         };
         match msg {
             Message::Close(_) => {
-                let _ = sender.send_message(Message::Close(None));
+                let _ = tx.send(Message::Close(None));
                 return;
             }
             Message::Ping(data) => {
-                let _ = sender.send_message(Message::Pong(data));
+                let _ = tx.send(Message::Pong(data));
             }
             Message::Text(text) => {
                 println!("received {:?}", text);
             }
             Message::Pong(_) | Message::Binary(_) => {
                 elog!("received unexpected message: {:?}", msg);
-                let _ = sender.send_message(Message::Close(None));
+                let _ = tx.send(Message::Close(None));
                 return;
             }
         }
