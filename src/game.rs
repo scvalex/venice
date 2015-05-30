@@ -6,23 +6,23 @@ use common::*;
 use data_pack::*;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-struct Bid<'a> {
-    player: &'a PlayerId,
-    item: &'a ItemId,
+struct Bid {
+    player:  PlayerId,
+    item:  ItemId,
     quantity: Quantity,
     price: Money,
 }
 
 #[derive(Debug)]
-struct Player<'a> {
-    id: &'a PlayerId,
+struct Player {
+    id:  PlayerId,
     resources: Resources,
     money: Money,
-    bids: HashSet<Bid<'a>>,
+    bids: HashSet<Bid>,
 }
 
-impl<'a> Player<'a> {
-    fn new(id: &PlayerId, money: Money) -> Player {
+impl Player {
+    fn new(id: PlayerId, money: Money) -> Player {
         Player {
             id: id,
             resources: Resources { force: 0, influence: 0, popularity: 0, },
@@ -31,39 +31,39 @@ impl<'a> Player<'a> {
         }
     }
 
-    fn place_bid(&mut self, iid: &'a ItemId, qty: Quantity, px: Money) {
-        self.bids.insert(Bid { player: self.id, item: iid, quantity: qty, price: px});
+    fn place_bid(&mut self, iid:  ItemId, qty: Quantity, px: Money) {
+        self.bids.insert(Bid { player: self.id.clone(), item: iid, quantity: qty, price: px});
     }
 }
 
 #[derive(Debug)]
-struct Bids<'a> {
-    winning_bids: HashSet<Bid<'a>>,
-    other_bids: HashSet<Bid<'a>>,
+struct Bids {
+    winning_bids: HashSet<Bid>,
+    other_bids: HashSet<Bid>,
 }
 
 #[derive(Debug)]
-struct CompletedAuction<'a> {
+struct CompletedAuction {
     id: AuctionId,
-    bids: HashMap<&'a ItemId, Bids<'a>>,
+    bids: HashMap< ItemId, Bids>,
 }
 
-pub enum Event<'a> {
-    JoinGame(GameId, &'a PlayerId),
-    PlaceBid(GameId, &'a PlayerId, &'a ItemId, Quantity, Money),
+pub enum Event {
+    JoinGame(GameId,  PlayerId),
+    PlaceBid(GameId,  PlayerId,  ItemId, Quantity, Money),
 }
 
 #[derive(Debug)]
-pub struct Game<'a> {
+pub struct Game {
     id: GameId,
     data_pack: DataPack,
-    completed_auctions: Vec<CompletedAuction<'a>>,
+    completed_auctions: Vec<CompletedAuction>,
     pending_auctions: LinkedList<AuctionId>,
-    players: HashMap<&'a PlayerId, Player<'a>>,
+    players: HashMap< PlayerId, Player>,
 }
 
-impl<'a> Game<'a> {
-    pub fn new(id: GameId, data_pack: DataPack) -> Game<'a> {
+impl Game {
+    pub fn new(id: GameId, data_pack: DataPack) -> Game {
         let pending_auctions =
             FromIterator::from_iter(data_pack.auctions.iter().map(|a| a.id.clone()));
         Game {
@@ -75,16 +75,16 @@ impl<'a> Game<'a> {
         }
     }
 
-    pub fn apply_event(&mut self, ev: &'a Event) {
+    pub fn apply_event(&mut self, ev: Event) {
         match ev {
-            &Event::JoinGame(ref gid, pid) => {
-                assert_eq!(&self.id, gid);
-                let player = Player::new(pid, self.data_pack.starting_money);
+            Event::JoinGame(gid, pid) => {
+                assert_eq!(self.id, gid);
+                let player = Player::new(pid.clone(), self.data_pack.starting_money);
                 self.players.insert(pid, player);
             }
-            &Event::PlaceBid(ref gid, pid, iid, qty, px) => {
-                assert_eq!(&self.id, gid);
-                match self.players.get_mut(pid) {
+            Event::PlaceBid(gid, pid, iid, qty, px) => {
+                assert_eq!(self.id, gid);
+                match self.players.get_mut(&pid) {
                     None => elog!("player {:?} not in game {:?}", pid, gid),
                     Some(player) => player.place_bid(iid, qty, px),
                 }
@@ -106,7 +106,7 @@ mod tests {
       let gid = GameId("1".to_string());
       let mut _g  = Game::new(GameId("1".to_string()), _dp);
       let pid = PlayerId("player1".to_string());
-      let e = Event::JoinGame(gid, &pid);
-      _g.apply_event(&e);
+      let e = Event::JoinGame(gid, pid);
+      _g.apply_event(e);
     }
 }
