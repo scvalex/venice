@@ -104,6 +104,33 @@ impl Game {
     }
 
     // TODO call from a task scheduler of sorts running on a separate thread
+    pub fn game_loop(&self) {
+        self.opening_auction();
+        for i in 1..5 {
+            self.common_auction();
+        }
+        self.closing_auction();
+        self.resolve_winners();
+    }
+
+    pub fn opening_auction(&self) {
+        // wait for bids
+        self.resolve_bids();
+    }
+
+    pub fn common_auction(&self) {
+        // wait for bids
+        self.resolve_bids();
+    }
+
+    pub fn closing_auction(&self) {
+        // wait for bids
+        self.resolve_bids();
+    }
+
+    pub fn resolve_winners(&self) {
+    }
+
     pub fn resolve_bids(&self) {
         // TODO higher bid wins and loses money
 
@@ -121,8 +148,7 @@ mod tests {
     use data_pack::*;
     use common::*;
 
-    #[test]
-    fn game_works() {
+    fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money) {
       let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
 
       let gid = GameId("game1".to_string());
@@ -130,8 +156,13 @@ mod tests {
       let pid = PlayerId("player1".to_string());
       let quant = Quantity(10);
       let sum = Money(10);
-
       let mut g  = Game::new(gid.clone(), dp);
+      (g, gid, itemId, pid, quant, sum)
+    }
+
+    #[test]
+    fn test_bid() {
+      let (mut g,  gid, itemId, pid, quant, sum) = test_setup();
 
       let join_ev = Event::JoinGame(gid.clone(), pid.clone());
       let bid_ev  = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
@@ -141,5 +172,11 @@ mod tests {
       g.resolve_bids();
       g.list_bids();
       // TODO check bids resolved correctly
+    }
+
+    #[test]
+    fn test_game_loop() {
+      let (mut g,  gid, itemId, pid, quant, sum) = test_setup();
+      g.game_loop();
     }
 }
