@@ -32,6 +32,67 @@ Commands:
     server      Run the server.
 ";
 
+fn run_server(port: u16) {
+    println!("starting server on {}", port);
+    let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
+    for connection in server {
+        thread::spawn(move || {
+            let req = connection.unwrap().read_request().unwrap();
+            let resp = req.accept();
+            let client = resp.send().unwrap();
+            let (mut sender, mut receiver) = client.split();
+            for msg in receiver.incoming_messages::<Message>() {
+                let msg = match msg {
+                    Ok(msg) => msg,
+                    Err(msg) => {
+                        elog!("connection error: {}", msg);
+                        let _ = sender.send_message(Message::Close(None));
+                        return;
+                    }
+                };
+                match msg {
+                    Message::Close(_) => {
+                        let _ = sender.send_message(Message::Close(None));
+                        return;
+                    }
+                    Message::Ping(data) => {
+                        let _ = sender.send_message(Message::Pong(data));
+                    }
+                    Message::Text(text) => {
+                        println!("received {:?}", text);
+                    }
+                    Message::Pong(..) | Message::Binary(..) => {
+                        elog!("received binary data");
+                        let _ = sender.send_message(Message::Close(None));
+                        return;
+                    }
+                }
+            }
+        });
+    }
+}
+
+fn run_cli(url: String) {
+    println!("connecting to {}", url);
+    let url = websocket::client::request::Url::parse(&url).unwrap();
+    let req = websocket::Client::connect(url).unwrap();
+    let resp = req.send().unwrap();
+    let () = resp.validate().unwrap();
+    let client = resp.begin();
+    let (mut sender, mut receiver) = client.split();
+    thread::spawn(move || {
+        for msg in receiver.incoming_messages::<Message>() {
+            println!("{:?}", msg);
+        }
+    });
+    loop {
+        let mut line = String::new();
+        io::stdin().read_line(&mut line).unwrap();
+        let msg = Message::Text(line);
+        let () = sender.send_message(msg).unwrap();
+    }
+}
+
 fn main() {
     let args =
         Docopt::new(USAGE)
@@ -42,65 +103,12 @@ fn main() {
         println!("data_pack: {}", dp);
     } else if args.get_bool("server") {
         let port = args.get_str("--port").parse::<u16>().unwrap();
-        println!("starting server on {}", port);
-        let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
-        for connection in server {
-            thread::spawn(move || {
-                let req = connection.unwrap().read_request().unwrap();
-                let resp = req.accept();
-                let client = resp.send().unwrap();
-                let (mut sender, mut receiver) = client.split();
-                for msg in receiver.incoming_messages::<Message>() {
-                    let msg = match msg {
-                        Ok(msg) => msg,
-                        Err(msg) => {
-                            elog!("connection error: {}", msg);
-                            let _ = sender.send_message(Message::Close(None));
-                            return;
-                        }
-                    };
-                    match msg {
-                        Message::Close(_) => {
-                            let _ = sender.send_message(Message::Close(None));
-                            return;
-                        }
-                        Message::Ping(data) => {
-                            let _ = sender.send_message(Message::Pong(data));
-                        }
-                        Message::Text(text) => {
-                            println!("received {:?}", text);
-                        }
-                        Message::Pong(..) | Message::Binary(..) => {
-                            elog!("received binary data");
-                            let _ = sender.send_message(Message::Close(None));
-                            return;
-                        }
-                    }
-                }
-            });
-        }
+        run_server(port);
     } else if args.get_bool("cli") {
         let port = args.get_str("--port").parse::<u16>().unwrap();
         let host = args.get_str("--host");
         let url = format!("ws://{}:{}", host, port);
-        println!("connecting to {}", url);
-        let url = websocket::client::request::Url::parse(&url).unwrap();
-        let req = websocket::Client::connect(url).unwrap();
-        let resp = req.send().unwrap();
-        let () = resp.validate().unwrap();
-        let client = resp.begin();
-        let (mut sender, mut receiver) = client.split();
-        thread::spawn(move || {
-            for msg in receiver.incoming_messages::<Message>() {
-                println!("{:?}", msg);
-            }
-        });
-        loop {
-            let mut line = String::new();
-            io::stdin().read_line(&mut line).unwrap();
-            let msg = Message::Text(line);
-            let () = sender.send_message(msg).unwrap();
-        }
+        run_cli(url);
     } else {
         unreachable!();
     }
