@@ -7,10 +7,13 @@ use std::io;
 use std::io::Write;
 use std::fs::File;
 use std::thread;
+use std::sync::mpsc;
 
 use websocket::ws::receiver::Receiver;
 use websocket::ws::sender::Sender;
 use websocket::server::Connection;
+use websocket::dataframe::DataFrame;
+use websocket::client::Client;
 
 use docopt::Docopt;
 
@@ -32,80 +35,13 @@ Commands:
     server      Run the server.
 ";
 
-fn handle_client_connection<R, W>(conn: Connection<R, W>)
-    where R: std::io::Read + Send, W: 'static + std::io::Write + Send
+fn channels_of_websocket<S, R>(client: Client<DataFrame, S, R>) ->
+    (mpsc::Sender<websocket::Message>, mpsc::Receiver<String>)
+    where S: 'static + Sender<DataFrame> + Send, R: 'static + Receiver<DataFrame> + Send
 {
     use websocket::Message;
     use std::sync::mpsc::channel;
-    let req = conn.read_request().unwrap();
-    let resp = req.accept();
-    let (mut sender, mut receiver) = resp.send().unwrap().split();
-    let (tx, rx) = channel();
-    thread::spawn(move || {
-        loop {
-            let msg = match rx.recv() {
-                Ok(msg) => msg,
-                Err(_) => return,
-            };
-            match msg {
-                Message::Close(_) => {
-                    let _ = sender.send_message(msg);
-                    return;
-                }
-                _ => (),
-            }
-            let () = sender.send_message(msg).unwrap();
-        }
-    });
-    for msg in receiver.incoming_messages::<Message>() {
-        let msg = match msg {
-            Ok(msg) => msg,
-            Err(msg) => {
-                elog!("connection error: {}", msg);
-                let _ = tx.send(Message::Close(None));
-                return;
-            }
-        };
-        match msg {
-            Message::Close(_) => {
-                let _ = tx.send(Message::Close(None));
-                return;
-            }
-            Message::Ping(data) => {
-                let _ = tx.send(Message::Pong(data));
-            }
-            Message::Text(text) => {
-                println!("received {:?}", text);
-            }
-            Message::Pong(_) | Message::Binary(_) => {
-                elog!("received unexpected message: {:?}", msg);
-                let _ = tx.send(Message::Close(None));
-                return;
-            }
-        }
-    }
-}
-
-fn run_server(port: u16) {
-    println!("starting server on {}", port);
-    let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
-    for conn in server {
-        thread::spawn(move || {
-            handle_client_connection(conn.unwrap());
-        });
-    }
-}
-
-fn run_cli(url: String) {
-    use std::sync::mpsc::channel;
-    use websocket::Message;
-
-    println!("connecting to {}", url);
-    let url = websocket::client::request::Url::parse(&url).unwrap();
-    let req = websocket::Client::connect(url).unwrap();
-    let resp = req.send().unwrap();
-    let () = resp.validate().unwrap();
-    let (mut sender, mut receiver) = resp.begin().split();
+    let (mut sender, mut receiver) = client.split();
     let (tx, rx) = channel();
     thread::spawn(move || {
         loop {
@@ -124,6 +60,7 @@ fn run_cli(url: String) {
         }
     });
     let tx1 = tx.clone();
+    let (tx_out, rx_out) = channel();
     thread::spawn(move || {
         for msg in receiver.incoming_messages::<Message>() {
             let msg = match msg {
@@ -143,7 +80,13 @@ fn run_cli(url: String) {
                     let _ = tx1.send(Message::Pong(data));
                 }
                 Message::Text(text) => {
-                    println!("{}", text);
+                    match tx_out.send(text) {
+                        Ok(()) => (),
+                        Err(_) => {
+                            let _ = tx1.send(Message::Close(None));
+                            return;
+                        }
+                    }
                 }
                 Message::Pong(..) | Message::Binary(..) => {
                     elog!("received unexpected message: {:?}", msg);
@@ -153,11 +96,51 @@ fn run_cli(url: String) {
             }
         }
     });
+    (tx, rx_out)
+}
+
+fn handle_client_connection<R, W>(conn: Connection<R, W>)
+    where R: 'static + std::io::Read + Send, W: 'static + std::io::Write + Send
+{
+    let req = conn.read_request().unwrap();
+    let resp = req.accept();
+    let (tx, rx) = channels_of_websocket(resp.send().unwrap());
+    loop {
+        match rx.recv() {
+            Err(_) => return,
+            Ok(str) => {
+                println!("Received: {}", str);
+            }
+        }
+    }
+}
+
+fn run_server(port: u16) {
+    println!("starting server on {}", port);
+    let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
+    for conn in server {
+        thread::spawn(move || {
+            handle_client_connection(conn.unwrap());
+        });
+    }
+}
+
+fn run_cli(url: String) {
+    use websocket::Message;
+    println!("connecting to {}", url);
+    let url = websocket::client::request::Url::parse(&url).unwrap();
+    let req = websocket::Client::connect(url).unwrap();
+    let resp = req.send().unwrap();
+    let () = resp.validate().unwrap();
+    let (tx, rx) = channels_of_websocket(resp.begin());
     loop {
         let mut line = String::new();
         io::stdin().read_line(&mut line).unwrap();
-        let msg = Message::Text(line.trim().to_string());
-        let () = tx.send(msg).unwrap();
+        let () = tx.send(Message::Text(line.trim().to_string())).unwrap();
+        match rx.recv() {
+            Err(_)  => return,
+            Ok(str) => println!("{}", str),
+        }
     }
 }
 
