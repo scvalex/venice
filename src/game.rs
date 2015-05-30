@@ -4,7 +4,6 @@ use std::io::Write;
 
 use common::*;
 use data_pack::*;
-use event::Event;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Bid<'a> {
@@ -49,22 +48,27 @@ struct CompletedAuction<'a> {
     bids: HashMap<&'a ItemId, Bids<'a>>,
 }
 
+pub enum Event<'a> {
+    JoinGame(&'a GameId, &'a PlayerId),
+    PlaceBid(&'a GameId, &'a PlayerId, &'a ItemId, Quantity, Money),
+}
+
 #[derive(Debug)]
 pub struct Game<'a> {
     id: &'a GameId,
-    data_pack: &'a DataPack,
+    data_pack: DataPack,
     completed_auctions: Vec<CompletedAuction<'a>>,
-    pending_auctions: LinkedList<&'a AuctionId>,
+    pending_auctions: LinkedList<AuctionId>,
     players: HashMap<&'a PlayerId, Player<'a>>,
 }
 
 impl<'a> Game<'a> {
-    pub fn new(id: &'a GameId, data_pack: &'a DataPack) -> Game<'a> {
+    pub fn new(id: &'a GameId, data_pack: DataPack) -> Game<'a> {
         let pending_auctions =
-            FromIterator::from_iter(data_pack.auctions.iter().map(|a| &a.id));
+            FromIterator::from_iter(data_pack.auctions.iter().map(|a| a.id.clone()));
         Game {
             id: id,
-            data_pack: &data_pack,
+            data_pack: data_pack,
             completed_auctions: vec![],
             pending_auctions: pending_auctions,
             players: HashMap::new(),

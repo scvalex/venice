@@ -9,5 +9,5 @@ pub use data_pack::DataPack;
 mod game;
 pub use game::Game;
 
-mod event;
-pub use event::Event;
+mod server;
+pub use server::Server;

@@ -35,7 +35,7 @@ pub struct Auction {
     items: Vec<(u32, ItemId)>,
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct DataPack {
     pub items: Vec<ItemId>,
     pub auctions: Vec<Auction>,

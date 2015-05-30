@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct GameId(String);
 
 #[derive(Debug, PartialEq, Eq, Hash)]
