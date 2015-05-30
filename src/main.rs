@@ -1,10 +1,15 @@
+#[macro_use]
 extern crate venice;
 extern crate docopt;
 extern crate websocket;
 
+use std::io;
+use std::io::Write;
 use std::fs::File;
 use std::thread;
 
+use websocket::ws::receiver::Receiver;
+use websocket::ws::sender::Sender;
 use websocket::Message;
 
 use docopt::Docopt;
@@ -43,9 +48,35 @@ fn main() {
             thread::spawn(move || {
                 let req = connection.unwrap().read_request().unwrap();
                 let resp = req.accept();
-                let mut client = resp.send().unwrap();
-                let msg = Message::Text("Hello".to_string());
-                let _ = client.send_message(msg).unwrap();
+                let client = resp.send().unwrap();
+                let (mut sender, mut receiver) = client.split();
+                for msg in receiver.incoming_messages::<Message>() {
+                    let msg = match msg {
+                        Ok(msg) => msg,
+                        Err(msg) => {
+                            elog!("connection error: {}", msg);
+                            let _ = sender.send_message(Message::Close(None));
+                            return;
+                        }
+                    };
+                    match msg {
+                        Message::Close(_) => {
+                            let _ = sender.send_message(Message::Close(None));
+                            return;
+                        }
+                        Message::Ping(data) => {
+                            let _ = sender.send_message(Message::Pong(data));
+                        }
+                        Message::Text(text) => {
+                            println!("received {:?}", text);
+                        }
+                        Message::Pong(..) | Message::Binary(..) => {
+                            elog!("received binary data");
+                            let _ = sender.send_message(Message::Close(None));
+                            return;
+                        }
+                    }
+                }
             });
         }
     } else if args.get_bool("cli") {
@@ -56,10 +87,20 @@ fn main() {
         let url = websocket::client::request::Url::parse(&url).unwrap();
         let req = websocket::Client::connect(url).unwrap();
         let resp = req.send().unwrap();
-        resp.validate();
-        let mut client = resp.begin();
-        let msg : Message = client.recv_message().unwrap();
-        println!("received {:?}", msg);
+        let () = resp.validate().unwrap();
+        let client = resp.begin();
+        let (mut sender, mut receiver) = client.split();
+        thread::spawn(move || {
+            for msg in receiver.incoming_messages::<Message>() {
+                println!("{:?}", msg);
+            }
+        });
+        loop {
+            let mut line = String::new();
+            io::stdin().read_line(&mut line).unwrap();
+            let msg = Message::Text(line);
+            let () = sender.send_message(msg).unwrap();
+        }
     } else {
         unreachable!();
     }
