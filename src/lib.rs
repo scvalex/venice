@@ -1,4 +1,5 @@
 extern crate rustc_serialize;
+extern crate crypto;
 
 #[macro_use]
 mod common;

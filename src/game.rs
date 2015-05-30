@@ -49,13 +49,13 @@ struct CompletedAuction<'a> {
 }
 
 pub enum Event<'a> {
-    JoinGame(&'a GameId, &'a PlayerId),
-    PlaceBid(&'a GameId, &'a PlayerId, &'a ItemId, Quantity, Money),
+    JoinGame(GameId, &'a PlayerId),
+    PlaceBid(GameId, &'a PlayerId, &'a ItemId, Quantity, Money),
 }
 
 #[derive(Debug)]
 pub struct Game<'a> {
-    id: &'a GameId,
+    id: GameId,
     data_pack: DataPack,
     completed_auctions: Vec<CompletedAuction<'a>>,
     pending_auctions: LinkedList<AuctionId>,
@@ -63,7 +63,7 @@ pub struct Game<'a> {
 }
 
 impl<'a> Game<'a> {
-    pub fn new(id: &'a GameId, data_pack: DataPack) -> Game<'a> {
+    pub fn new(id: GameId, data_pack: DataPack) -> Game<'a> {
         let pending_auctions =
             FromIterator::from_iter(data_pack.auctions.iter().map(|a| a.id.clone()));
         Game {
@@ -77,13 +77,13 @@ impl<'a> Game<'a> {
 
     pub fn apply_event(&mut self, ev: &'a Event) {
         match ev {
-            &Event::JoinGame(gid, pid) => {
-                assert_eq!(self.id, gid);
+            &Event::JoinGame(ref gid, pid) => {
+                assert_eq!(&self.id, gid);
                 let player = Player::new(pid, self.data_pack.starting_money);
                 self.players.insert(pid, player);
             }
-            &Event::PlaceBid(gid, pid, iid, qty, px) => {
-                assert_eq!(self.id, gid);
+            &Event::PlaceBid(ref gid, pid, iid, qty, px) => {
+                assert_eq!(&self.id, gid);
                 match self.players.get_mut(pid) {
                     None => elog!("player {:?} not in game {:?}", pid, gid),
                     Some(player) => player.place_bid(iid, qty, px),
