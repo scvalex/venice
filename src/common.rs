@@ -2,7 +2,7 @@
 pub struct GameId(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PlayerId(String);
+pub struct PlayerId(pub String);
 
 pub type UserId = PlayerId;
 

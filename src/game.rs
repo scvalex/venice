@@ -103,6 +103,10 @@ mod tests {
     #[test]
     fn game_works() {
       let _dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
-      let _g  = Game::new(GameId("1".to_string()), _dp);
+      let gid = GameId("1".to_string());
+      let mut _g  = Game::new(GameId("1".to_string()), _dp);
+      let pid = PlayerId("player1".to_string());
+      let e = Event::JoinGame(gid, &pid);
+      _g.apply_event(&e);
     }
 }
