@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GameId(String);
+pub struct GameId(pub String);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PlayerId(String);
