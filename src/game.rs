@@ -78,18 +78,39 @@ impl Game {
     pub fn apply_event(&mut self, ev: Event) {
         match ev {
             Event::JoinGame(gid, pid) => {
-                assert_eq!(self.id, gid);
-                let player = Player::new(pid.clone(), self.data_pack.starting_money);
-                self.players.insert(pid, player);
+                self.join_game(gid, pid);
             }
             Event::PlaceBid(gid, pid, iid, qty, px) => {
-                assert_eq!(self.id, gid);
-                match self.players.get_mut(&pid) {
-                    None => elog!("player {:?} not in game {:?}", pid, gid),
-                    Some(player) => player.place_bid(iid, qty, px),
-                }
+                self.place_bid(gid, pid, iid, qty, px);
             }
         }
+    }
+
+    pub fn place_bid(&mut self,
+                     gid: GameId, pid: PlayerId,
+                     iid: ItemId, qty: Quantity,
+                     px: Money) {
+        assert_eq!(self.id, gid);
+        match self.players.get_mut(&pid) {
+            None => elog!("player {:?} not in game {:?}", pid, gid),
+            Some(player) => player.place_bid(iid, qty, px),
+        }
+    }
+
+    pub fn join_game(&mut self, gid: GameId, pid: PlayerId) {
+        assert_eq!(self.id, gid);
+        let player = Player::new(pid.clone(), self.data_pack.starting_money);
+        self.players.insert(pid, player);
+    }
+
+    // TODO call from a task scheduler of sorts running on a separate thread
+    pub fn resolve_bids(&self) {
+        // TODO higher bid wins and loses money
+
+    }
+
+    pub fn list_bids(&self) {
+        // TODO
     }
 }
 
@@ -102,11 +123,23 @@ mod tests {
 
     #[test]
     fn game_works() {
-      let _dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
-      let gid = GameId("1".to_string());
-      let mut _g  = Game::new(GameId("1".to_string()), _dp);
+      let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
+
+      let gid = GameId("game1".to_string());
+      let itemId = ItemId("item1".to_string());
       let pid = PlayerId("player1".to_string());
-      let e = Event::JoinGame(gid, pid);
-      _g.apply_event(e);
+      let quant = Quantity(10);
+      let sum = Money(10);
+
+      let mut g  = Game::new(gid.clone(), dp);
+
+      let join_ev = Event::JoinGame(gid.clone(), pid.clone());
+      let bid_ev  = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
+      g.apply_event(join_ev);
+      g.apply_event(bid_ev);
+
+      g.resolve_bids();
+      g.list_bids();
+      // TODO check bids resolved correctly
     }
 }
