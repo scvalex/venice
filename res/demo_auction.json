@@ -1,4 +1,5 @@
 {
   "items": [],
-  "auctions": []
+  "auctions": [],
+  "starting_money": {"_field0": 300}
 }
