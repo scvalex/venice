@@ -10,6 +10,7 @@ use std::thread;
 
 use websocket::ws::receiver::Receiver;
 use websocket::ws::sender::Sender;
+use websocket::server::Connection;
 
 use docopt::Docopt;
 
@@ -31,43 +32,48 @@ Commands:
     server      Run the server.
 ";
 
-fn run_server(port: u16) {
+fn handle_client_connection<R, W>(conn: Connection<R, W>)
+    where R: std::io::Read, W: std::io::Write
+{
     use websocket::Message;
+    let req = conn.read_request().unwrap();
+    let resp = req.accept();
+    let (mut sender, mut receiver) = resp.send().unwrap().split();
+    for msg in receiver.incoming_messages::<Message>() {
+        let msg = match msg {
+            Ok(msg) => msg,
+            Err(msg) => {
+                elog!("connection error: {}", msg);
+                let _ = sender.send_message(Message::Close(None));
+                return;
+            }
+        };
+        match msg {
+            Message::Close(_) => {
+                let _ = sender.send_message(Message::Close(None));
+                return;
+            }
+            Message::Ping(data) => {
+                let _ = sender.send_message(Message::Pong(data));
+            }
+            Message::Text(text) => {
+                println!("received {:?}", text);
+            }
+            Message::Pong(_) | Message::Binary(_) => {
+                elog!("received unexpected message: {:?}", msg);
+                let _ = sender.send_message(Message::Close(None));
+                return;
+            }
+        }
+    }
+}
 
+fn run_server(port: u16) {
     println!("starting server on {}", port);
     let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
-    for connection in server {
+    for conn in server {
         thread::spawn(move || {
-            let req = connection.unwrap().read_request().unwrap();
-            let resp = req.accept();
-            let (mut sender, mut receiver) = resp.send().unwrap().split();
-            for msg in receiver.incoming_messages::<Message>() {
-                let msg = match msg {
-                    Ok(msg) => msg,
-                    Err(msg) => {
-                        elog!("connection error: {}", msg);
-                        let _ = sender.send_message(Message::Close(None));
-                        return;
-                    }
-                };
-                match msg {
-                    Message::Close(_) => {
-                        let _ = sender.send_message(Message::Close(None));
-                        return;
-                    }
-                    Message::Ping(data) => {
-                        let _ = sender.send_message(Message::Pong(data));
-                    }
-                    Message::Text(text) => {
-                        println!("received {:?}", text);
-                    }
-                    Message::Pong(_) | Message::Binary(_) => {
-                        elog!("received unexpected message: {:?}", msg);
-                        let _ = sender.send_message(Message::Close(None));
-                        return;
-                    }
-                }
-            }
+            handle_client_connection(conn.unwrap());
         });
     }
 }
