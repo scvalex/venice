@@ -7,18 +7,18 @@ pub struct PlayerId(pub String);
 pub type UserId = PlayerId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Quantity(u32);
+pub struct Quantity(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
-pub struct Money(u32);
+pub struct Money(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
-pub struct ItemId(String);
+pub struct ItemId(pub String);
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct AuctionId(String);
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Resources {
     pub force: u32,
     pub popularity: u32,
