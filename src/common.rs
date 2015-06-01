@@ -15,7 +15,7 @@ pub struct Money(pub u32);
 #[derive(Debug, Clone, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
 pub struct ItemId(pub String);
 
-#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, PartialEq, Eq, RustcDecodable, RustcEncodable)]
 pub struct AuctionId(String);
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]

@@ -77,9 +77,9 @@ impl Server {
 
     pub fn users(&self) -> HashSet<&User> {
         let mut users = HashSet::new();
-        self.users.values().inspect(|user| {
+        for user in self.users.values() {
             users.insert(user.clone());
-        });
+        }
         users
     }
 }

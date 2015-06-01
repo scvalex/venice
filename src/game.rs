@@ -1,23 +1,25 @@
 use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::io::Write;
-use std::thread;
-use std::sync::Mutex;
+
+/// No threads. No mutexes. Game should just be a container
+/// for data and the logic which manipulates that data.
+/// use std::thread;
 
 use common::*;
 use data_pack::*;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Bid {
-    player:  PlayerId,
-    item:  ItemId,
+    player: PlayerId,
+    item: ItemId,
     quantity: Quantity,
     price: Money,
 }
 
 #[derive(Debug)]
 struct Player {
-    id:  PlayerId,
+    id: PlayerId,
     resources: Resources,
     money: Money,
     bids: HashSet<Bid>,
@@ -37,7 +39,7 @@ impl Player {
         }
     }
 
-    fn place_bid(&mut self, iid:  ItemId, qty: Quantity, px: Money) {
+    fn place_bid(&mut self, iid: ItemId, qty: Quantity, px: Money) {
         self.bids.insert(Bid { player: self.id.clone(), item: iid, quantity: qty, price: px});
     }
 }
@@ -51,12 +53,13 @@ struct Bids {
 #[derive(Debug)]
 struct CompletedAuction {
     id: AuctionId,
-    bids: HashMap< ItemId, Bids>,
+    bids: HashMap<ItemId, Bids>,
 }
 
 pub enum Event {
-    JoinGame(GameId,  PlayerId),
-    PlaceBid(GameId,  PlayerId,  ItemId, Quantity, Money),
+    JoinGame(GameId, PlayerId),
+    PlaceBid(GameId, PlayerId, ItemId, Quantity, Money),
+    RunAuction(GameId),
 }
 
 #[derive(Debug)]
@@ -65,10 +68,8 @@ pub struct Game {
     data_pack: DataPack,
     completed_auctions: Vec<CompletedAuction>,
     pending_auctions: LinkedList<AuctionId>,
-    players: HashMap< PlayerId, Player>,
+    players: HashMap<PlayerId, Player>,
     min_players: usize,
-    assets: Vec<Asset>,
-    agendas: Vec<Agenda>,
 }
 
 impl Game {
@@ -82,8 +83,6 @@ impl Game {
             pending_auctions: pending_auctions,
             players: HashMap::new(),
             min_players: 2,
-            assets: data_pack.assets,
-            agendas: data_pack.agendas
         }
     }
 
@@ -95,13 +94,16 @@ impl Game {
             Event::PlaceBid(gid, pid, iid, qty, px) => {
                 self.place_bid(gid, pid, iid, qty, px);
             }
+            Event::RunAuction(gid) => {
+                self.run_auction(gid);
+            }
         }
     }
 
     fn place_bid(&mut self,
-                     gid: GameId, pid: PlayerId,
-                     iid: ItemId, qty: Quantity,
-                     px: Money) {
+                 gid: GameId, pid: PlayerId,
+                 iid: ItemId, qty: Quantity,
+                 px: Money) {
         assert_eq!(self.id, gid);
         match self.players.get_mut(&pid) {
             None => elog!("player {:?} not in game {:?}", pid, gid),
@@ -115,52 +117,20 @@ impl Game {
         self.players.insert(pid, player);
     }
 
-    // main game loop. run on a separate thread  since it will sleep waiting for events
-    pub fn game_loop(&mut self) {
-        self.wait_for_players();
-        self.opening_auction();
-        for i in 1..5 {
-            self.common_auction();
-        }
-        self.closing_auction();
-        self.resolve_winners();
-    }
-
-    fn wait_for_players(&self) {
-        let mut done = false;
-        while !done {
-            thread::sleep_ms(1000);
-            if self.players.len() >= self.min_players {
-                done = true;
+    fn run_auction(&mut self, gid: GameId) {
+        assert_eq!(self.id, gid);
+        match self.pending_auctions.pop_front() {
+            None => {
+                elog!("no pending auctions");
+            }
+            Some(aid) => {
+                let auction = self.data_pack.auction(&aid);
+                // CR scvalex: Figure out who won each item in the
+                // auction, and construct a CompletedAuction.  Update
+                // the winning players so that they have the new items.
+                // Clear all bids from all players.
             }
         }
-    }
-
-    fn opening_auction(&self) {
-        // wait for bids
-        self.resolve_bids();
-    }
-
-    fn common_auction(&self) {
-        // wait for bids
-        self.resolve_bids();
-    }
-
-    fn closing_auction(&self) {
-        // wait for bids
-        self.resolve_bids();
-    }
-
-    fn resolve_winners(&self) {
-    }
-
-    fn resolve_bids(&self) {
-        // TODO higher bid wins and loses money
-
-    }
-
-    pub fn list_bids(&self) {
-        // TODO
     }
 }
 
@@ -170,8 +140,6 @@ mod tests {
     use std::fs::File;
     use data_pack::*;
     use common::*;
-    use std::thread;
-    use std::sync::Mutex;
 
     fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money, DataPack) {
       let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
@@ -192,32 +160,5 @@ mod tests {
       let bid_ev  = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
       g.apply_event(join_ev);
       g.apply_event(bid_ev);
-
-      g.resolve_bids();
-      g.list_bids();
-      // TODO check bids resolved correctly
-    }
-
-    #[test]
-    fn test_game_loop() {
-      let (mut g,  gid, itemId, pid, quant, sum, dp) = test_setup();
-      let gsafe = Arc::new(Mutex::new(g));
-
-      let grec = gsafe.clone();
-      let handle = thread::spawn(move || {
-          let mut g = grec.lock().unwrap();
-          g.game_loop();
-      });
-
-      for i in 0..2 {
-          let pid = PlayerId(i.to_string());
-          let join_ev = Event::JoinGame(gid.clone(), pid);
-          gsafe.lock().unwrap().apply_event(join_ev);
-      }
-
-      // TODO check some other stuff
-
-      // wait for the game loop to finish
-      handle.join();
     }
 }

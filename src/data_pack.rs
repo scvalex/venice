@@ -50,6 +50,15 @@ impl DataPack {
         let mut decoder = json::Decoder::new(json);
         rustc_serialize::Decodable::decode(&mut decoder).unwrap()
     }
+
+    pub fn auction(&self, aid: &AuctionId) -> Option<&Auction> {
+        for auction in &self.auctions {
+            if &auction.id == aid {
+                return Some(auction);
+            }
+        }
+        return None;
+    }
 }
 
 impl fmt::Display for DataPack {
