@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Write;
 
@@ -9,8 +9,9 @@ use common::*;
 use game::Game;
 use data_pack::DataPack;
 
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub struct User {
-    id: UserId,
+    pub id: UserId,
     password_hash: String,
 }
 
@@ -72,5 +73,13 @@ impl Server {
                 }
             }
         }
+    }
+
+    pub fn users(&self) -> HashSet<&User> {
+        let mut users = HashSet::new();
+        self.users.values().inspect(|user| {
+            users.insert(user.clone());
+        });
+        users
     }
 }

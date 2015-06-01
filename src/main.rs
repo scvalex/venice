@@ -6,7 +6,7 @@ extern crate websocket;
 use std::io;
 use std::io::Write;
 use std::thread;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 use std::sync::mpsc::channel;
 
 use websocket::ws::receiver::Receiver;
@@ -16,6 +16,7 @@ use websocket::dataframe::DataFrame;
 use websocket::client::Client;
 
 use venice::*;
+mod command;
 
 static USAGE: &'static str = "
 Usage: venice data-pack <file>
@@ -96,9 +97,11 @@ fn channels_of_websocket<S, R>(client: Client<DataFrame, S, R>) ->
     (tx, rx_out)
 }
 
-fn handle_client_connection<R, W>(conn: Connection<R, W>)
+fn handle_client_connection<R, W>(conn: Connection<R, W>, server: MutexGuard<Server>)
     where R: 'static + std::io::Read + Send, W: 'static + std::io::Write + Send
 {
+    use websocket::Message;
+    use command::Command;
     let req = conn.read_request().unwrap();
     let resp = req.accept();
     let (tx, rx) = channels_of_websocket(resp.send().unwrap());
@@ -107,6 +110,17 @@ fn handle_client_connection<R, W>(conn: Connection<R, W>)
             Err(_) => return,
             Ok(str) => {
                 println!("Received: {}", str);
+                let cmd = command::parse(&str);
+                match cmd {
+                    None => {
+                        tx.send(Message::Text("unknown command".to_string())).unwrap();
+                    }
+                    Some(Command::ListUsers) => {
+                        let users = server.users();
+                        let users = format!("{:?}", users);
+                        tx.send(Message::Text(users)).unwrap();
+                    }
+                }
             }
         }
     }
@@ -114,9 +128,13 @@ fn handle_client_connection<R, W>(conn: Connection<R, W>)
 
 fn run_server(port: u16) {
     println!("starting server on {}", port);
+    let server = Server::new();
+    let server = Arc::new(Mutex::new(server));
     for conn in websocket::Server::bind(("0.0.0.0", port)).unwrap() {
+        let server = server.clone();
         thread::spawn(move || {
-            handle_client_connection(conn.unwrap());
+            let server = server.lock().unwrap();
+            handle_client_connection(conn.unwrap(), server);
         });
     }
 }
@@ -141,6 +159,7 @@ fn run_cli(url: String) {
 }
 
 fn main() {
+    // CR scvalex: Docopt is ridiculously slow.  Replace it with something else.
     use docopt::Docopt;
     use std::fs::File;
     let args =

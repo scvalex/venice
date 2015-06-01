@@ -2,7 +2,7 @@ use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::io::Write;
 use std::thread;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use common::*;
 use data_pack::*;
@@ -171,7 +171,7 @@ mod tests {
     use data_pack::*;
     use common::*;
     use std::thread;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Mutex;
 
     fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money, DataPack) {
       let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
