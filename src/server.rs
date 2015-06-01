@@ -29,14 +29,14 @@ impl User {
     }
 }
 
-pub struct Server {
-    games: HashMap<GameId, Game>,
-    users: HashMap<UserId, User>,
-}
-
 pub enum Event<'a> {
     NewGame(GameId, &'a str),
     NewUser(UserId, &'a str),
+}
+
+pub struct Server {
+    games: HashMap<GameId, Game>,
+    users: HashMap<UserId, User>,
 }
 
 impl Server {

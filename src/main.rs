@@ -5,17 +5,15 @@ extern crate websocket;
 
 use std::io;
 use std::io::Write;
-use std::fs::File;
 use std::thread;
 use std::sync::mpsc;
+use std::sync::mpsc::channel;
 
 use websocket::ws::receiver::Receiver;
 use websocket::ws::sender::Sender;
 use websocket::server::Connection;
 use websocket::dataframe::DataFrame;
 use websocket::client::Client;
-
-use docopt::Docopt;
 
 use venice::*;
 
@@ -40,7 +38,6 @@ fn channels_of_websocket<S, R>(client: Client<DataFrame, S, R>) ->
     where S: 'static + Sender<DataFrame> + Send, R: 'static + Receiver<DataFrame> + Send
 {
     use websocket::Message;
-    use std::sync::mpsc::channel;
     let (mut sender, mut receiver) = client.split();
     let (tx, rx) = channel();
     thread::spawn(move || {
@@ -117,8 +114,7 @@ fn handle_client_connection<R, W>(conn: Connection<R, W>)
 
 fn run_server(port: u16) {
     println!("starting server on {}", port);
-    let server = websocket::Server::bind(("0.0.0.0", port)).unwrap();
-    for conn in server {
+    for conn in websocket::Server::bind(("0.0.0.0", port)).unwrap() {
         thread::spawn(move || {
             handle_client_connection(conn.unwrap());
         });
@@ -145,6 +141,8 @@ fn run_cli(url: String) {
 }
 
 fn main() {
+    use docopt::Docopt;
+    use std::fs::File;
     let args =
         Docopt::new(USAGE)
         .and_then(|dopt| dopt.parse())
