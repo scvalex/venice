@@ -191,15 +191,15 @@ mod tests {
       let pid = PlayerId("player1".to_string());
       let quant = Quantity(10);
       let sum = Money(10);
-      let mut g  = Game::new(gid.clone(), dp.clone());
+      let mut g = Game::new(gid.clone(), dp.clone());
       (g, gid, itemId, pid, quant, sum, dp)
     }
 
     #[test]
     fn test_bid() {
-      let (mut g,  gid, itemId, pid, quant, sum, _) = test_setup();
+      let (mut g, gid, itemId, pid, quant, sum, _) = test_setup();
       let join_ev = Event::JoinGame(gid.clone(), pid.clone());
-      let bid_ev  = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
+      let bid_ev = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
       g.apply_event(join_ev);
       g.apply_event(bid_ev);
     }
