@@ -1,5 +1,6 @@
 use std::io;
 use std::fmt;
+use std::collections::HashMap;
 
 use rustc_serialize;
 use rustc_serialize::json;
@@ -8,22 +9,22 @@ use common::*;
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Agenda {
-    id: ItemId,
-    title: String,
-    flavour_text: String,
-    cost: Resources,
-    value: Money,
+    pub id: ItemId,
+    pub title: String,
+    pub flavour_text: String,
+    pub cost: Resources,
+    pub value: Money,
 }
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Asset {
-    id: ItemId,
-    title: String,
-    flavour_text: String,
-    provides: Resources,
+    pub id: ItemId,
+    pub title: String,
+    pub flavour_text: String,
+    pub provides: Resources,
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub enum Item {
     Agenda(Agenda),
     Asset(Asset),
@@ -32,16 +33,14 @@ pub enum Item {
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Auction {
     pub id: AuctionId,
-    items: Vec<(u32, ItemId)>,
+    pub items: Vec<(Quantity, ItemId)>,
 }
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct DataPack {
-    pub items: Vec<ItemId>,
+    pub items: HashMap<ItemId, Item>,
     pub auctions: Vec<Auction>,
     pub starting_money: Money,
-    pub assets: Vec<Asset>,
-    pub agendas: Vec<Agenda>,
 }
 
 impl DataPack {

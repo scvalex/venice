@@ -6,10 +6,10 @@ pub struct PlayerId(pub String);
 
 pub type UserId = PlayerId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, RustcDecodable, RustcEncodable, Hash)]
 pub struct Quantity(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, RustcDecodable, RustcEncodable)]
 pub struct Money(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, RustcDecodable, RustcEncodable)]

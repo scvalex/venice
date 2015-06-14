@@ -1,6 +1,7 @@
 use std::collections::{LinkedList, HashMap, HashSet};
 use std::iter::FromIterator;
 use std::io::Write;
+use std::cmp;
 
 /// No threads. No mutexes. Game should just be a container
 /// for data and the logic which manipulates that data.
@@ -9,7 +10,7 @@ use std::io::Write;
 use common::*;
 use data_pack::*;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Bid {
     player: PlayerId,
     item: ItemId,
@@ -20,18 +21,16 @@ struct Bid {
 #[derive(Debug)]
 struct Player {
     id: PlayerId,
-    resources: Resources,
     money: Money,
     bids: HashSet<Bid>,
-    agendas: Vec<Agenda>,
-    assets: Vec<Asset>
+    agendas: Vec<(u32, Agenda)>,
+    assets: Vec<(u32, Asset)>
 }
 
 impl Player {
     fn new(id: PlayerId, money: Money) -> Player {
         Player {
             id: id,
-            resources: Resources { force: 0, influence: 0, popularity: 0, },
             money: money,
             bids: HashSet::new(),
             agendas: Vec::new(),
@@ -41,6 +40,20 @@ impl Player {
 
     fn place_bid(&mut self, iid: ItemId, qty: Quantity, px: Money) {
         self.bids.insert(Bid { player: self.id.clone(), item: iid, quantity: qty, price: px});
+    }
+
+    fn clear_bids(&mut self) {
+        self.bids.clear();
+    }
+
+    fn resources(&self) -> Resources {
+        let mut r = Resources {force: 0, popularity: 0, influence: 0};
+        for &(ref qty, ref a) in &self.assets {
+            r.force += qty * a.provides.force;
+            r.popularity += qty * a.provides.popularity;
+            r.influence += qty * a.provides.influence;
+        }
+        r
     }
 }
 
@@ -124,11 +137,42 @@ impl Game {
                 elog!("no pending auctions");
             }
             Some(aid) => {
-                let auction = self.data_pack.auction(&aid);
-                // CR scvalex: Figure out who won each item in the
-                // auction, and construct a CompletedAuction.  Update
-                // the winning players so that they have the new items.
-                // Clear all bids from all players.
+                let auction = self.data_pack.auction(&aid).unwrap();
+                for &(qty, ref iid) in &auction.items {
+                    // This is all ridiculously hard to write.
+                    let mut bids: Vec<Bid> = vec![];
+                    for p in self.players.values() {
+                        for b in &p.bids {
+                            if &b.item == iid {
+                                bids.push(b.to_owned());
+                            }
+                        }
+                    }
+                    bids.sort_by(|ref b1, ref b2| {
+                        b2.price.cmp(&b1.price)
+                    });
+                    let Quantity(mut qty) = qty;
+                    for b in &bids {
+                        let p = self.players.get_mut(&b.player).unwrap();
+                        let it = self.data_pack.items.get(&b.item).unwrap();
+                        let Money(bid_px) = b.price;
+                        let Money(p_money) = p.money;
+                        let Quantity(bid_qty) = b.quantity;
+                        let won_qty = cmp::max(qty, cmp::max(bid_qty, p_money / bid_px));
+                        match it {
+                            &Item::Agenda(ref a) => p.agendas.push((won_qty, a.to_owned())),
+                            &Item::Asset(ref a) => p.assets.push((won_qty, a.to_owned())),
+                        }
+                        p.money = Money(p_money - won_qty * bid_px);
+                        qty -= won_qty;
+                        if qty == 0 {
+                            break;
+                        }
+                    }
+                }
+                for (_, p) in self.players.iter_mut() {
+                    p.clear_bids();
+                }
             }
         }
     }
