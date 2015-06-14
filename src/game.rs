@@ -186,9 +186,9 @@ mod tests {
 
     fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money, DataPack) {
         let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
-        let gid = GameId("game1".to_string());
+        let gid = "game1".to_string();
         let itemId = "the-times".to_string();
-        let pid = PlayerId("mario".to_string());
+        let pid = "mario".to_string();
         let mut g = Game::new(gid.clone(), dp.clone());
         (g, gid, itemId, pid, Quantity(10), Money(10), dp)
     }

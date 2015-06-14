@@ -1,8 +1,6 @@
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GameId(pub String);
+pub type GameId = String;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PlayerId(pub String);
+pub type PlayerId = String;
 
 pub type UserId = PlayerId;
 
@@ -14,8 +12,7 @@ pub struct Money(pub u32);
 
 pub type ItemId = String;
 
-#[derive(Debug, Clone, PartialEq, Eq, RustcDecodable, RustcEncodable)]
-pub struct AuctionId(String);
+pub type AuctionId = String;
 
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Resources {

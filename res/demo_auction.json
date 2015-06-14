@@ -11,7 +11,7 @@
     }
   },
   "auctions": [
-    { "id": {"_field0": "auction1"},
+    { "id": "auction1",
       "items": [[{"_field0": 10}, "the-times"]]
     }
   ],
