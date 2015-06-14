@@ -156,7 +156,8 @@ impl Game {
                     for b in &bids {
                         let p = self.players.get_mut(&b.player).unwrap();
                         let it = self.data_pack.items.get(&b.item).unwrap();
-                        let won_qty = cmp::max(qty, cmp::max(b.quantity, p.money / b.price));
+                        let won_qty = cmp::max(qty, cmp::min(b.quantity, p.money / b.price));
+                        print!("{:?} won {} of {}\n", p.id, won_qty, it.id());
                         match it {
                             &Item::Agenda(ref a) => p.agendas.push((won_qty, a.to_owned())),
                             &Item::Asset(ref a) => p.assets.push((won_qty, a.to_owned())),
@@ -184,23 +185,21 @@ mod tests {
     use common::*;
 
     fn test_setup() -> (Game, GameId, ItemId, PlayerId, Quantity, Money, DataPack) {
-      let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
-
-      let gid = GameId("game1".to_string());
-      let itemId = ItemId("item1".to_string());
-      let pid = PlayerId("player1".to_string());
-      let quant = Quantity(10);
-      let sum = Money(10);
-      let mut g = Game::new(gid.clone(), dp.clone());
-      (g, gid, itemId, pid, quant, sum, dp)
+        let dp = DataPack::load(&mut File::open("res/demo_auction.json").unwrap());
+        let gid = GameId("game1".to_string());
+        let itemId = "the-times".to_string();
+        let pid = PlayerId("mario".to_string());
+        let mut g = Game::new(gid.clone(), dp.clone());
+        (g, gid, itemId, pid, Quantity(10), Money(10), dp)
     }
 
     #[test]
-    fn test_bid() {
-      let (mut g, gid, itemId, pid, quant, sum, _) = test_setup();
-      let join_ev = Event::JoinGame(gid.clone(), pid.clone());
-      let bid_ev = Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, sum);
-      g.apply_event(join_ev);
-      g.apply_event(bid_ev);
+    fn test_auction1() {
+        let (mut g, gid, itemId, pid, quant, px, _) = test_setup();
+        g.apply_event(Event::JoinGame(gid.clone(), pid.clone()));
+        g.apply_event(Event::PlaceBid(gid.clone(), pid.clone(), itemId, quant, px));
+        assert_eq!(g.players.get(&pid).unwrap().money, 300);
+        g.apply_event(Event::RunAuction(gid.clone()));
+        assert_eq!(g.players.get(&pid).unwrap().money, 200);
     }
 }

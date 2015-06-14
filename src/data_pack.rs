@@ -30,6 +30,15 @@ pub enum Item {
     Asset(Asset),
 }
 
+impl Item {
+    pub fn id(&self) -> ItemId {
+        match self {
+            &Item::Agenda(ref a) => a.id.clone(),
+            &Item::Asset(ref a) => a.id.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, RustcDecodable, RustcEncodable)]
 pub struct Auction {
     pub id: AuctionId,

@@ -1,5 +1,19 @@
 {
-  "items": [],
-  "auctions": [],
+  "items": {
+    "the-times": {
+      "variant": "Asset",
+      "fields": [{
+        "id": "the-times",
+        "title": "The Mushroom Kingdom Times",
+        "flavour_text": "Is Mario a sociopath, or a hero? The press decides.",
+        "provides": {"force": 0, "popularity": 20, "influence": 0}
+      }]
+    }
+  },
+  "auctions": [
+    { "id": {"_field0": "auction1"},
+      "items": [[{"_field0": 10}, "the-times"]]
+    }
+  ],
   "starting_money": {"_field0": 300}
 }
