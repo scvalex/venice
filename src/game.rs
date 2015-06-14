@@ -14,21 +14,21 @@ use data_pack::*;
 struct Bid {
     player: PlayerId,
     item: ItemId,
-    quantity: Quantity,
-    price: Money,
+    quantity: u32,
+    price: u32,
 }
 
 #[derive(Debug)]
 struct Player {
     id: PlayerId,
-    money: Money,
+    money: u32,
     bids: HashSet<Bid>,
     agendas: Vec<(u32, Agenda)>,
     assets: Vec<(u32, Asset)>
 }
 
 impl Player {
-    fn new(id: PlayerId, money: Money) -> Player {
+    fn new(id: PlayerId, money: u32) -> Player {
         Player {
             id: id,
             money: money,
@@ -38,7 +38,7 @@ impl Player {
         }
     }
 
-    fn place_bid(&mut self, iid: ItemId, qty: Quantity, px: Money) {
+    fn place_bid(&mut self, iid: ItemId, qty: u32, px: u32) {
         self.bids.insert(Bid { player: self.id.clone(), item: iid, quantity: qty, price: px});
     }
 
@@ -104,7 +104,7 @@ impl Game {
             Event::JoinGame(gid, pid) => {
                 self.join_game(gid, pid);
             }
-            Event::PlaceBid(gid, pid, iid, qty, px) => {
+            Event::PlaceBid(gid, pid, iid, Quantity(qty), Money(px)) => {
                 self.place_bid(gid, pid, iid, qty, px);
             }
             Event::RunAuction(gid) => {
@@ -115,8 +115,8 @@ impl Game {
 
     fn place_bid(&mut self,
                  gid: GameId, pid: PlayerId,
-                 iid: ItemId, qty: Quantity,
-                 px: Money) {
+                 iid: ItemId, qty: u32,
+                 px: u32) {
         assert_eq!(self.id, gid);
         match self.players.get_mut(&pid) {
             None => elog!("player {:?} not in game {:?}", pid, gid),
@@ -126,7 +126,8 @@ impl Game {
 
     fn join_game(&mut self, gid: GameId, pid: PlayerId) {
         assert_eq!(self.id, gid);
-        let player = Player::new(pid.clone(), self.data_pack.starting_money);
+        let Money(starting_money) = self.data_pack.starting_money;
+        let player = Player::new(pid.clone(), starting_money);
         self.players.insert(pid, player);
     }
 
@@ -155,15 +156,12 @@ impl Game {
                     for b in &bids {
                         let p = self.players.get_mut(&b.player).unwrap();
                         let it = self.data_pack.items.get(&b.item).unwrap();
-                        let Money(bid_px) = b.price;
-                        let Money(p_money) = p.money;
-                        let Quantity(bid_qty) = b.quantity;
-                        let won_qty = cmp::max(qty, cmp::max(bid_qty, p_money / bid_px));
+                        let won_qty = cmp::max(qty, cmp::max(b.quantity, p.money / b.price));
                         match it {
                             &Item::Agenda(ref a) => p.agendas.push((won_qty, a.to_owned())),
                             &Item::Asset(ref a) => p.assets.push((won_qty, a.to_owned())),
                         }
-                        p.money = Money(p_money - won_qty * bid_px);
+                        p.money -= won_qty * b.price;
                         qty -= won_qty;
                         if qty == 0 {
                             break;
