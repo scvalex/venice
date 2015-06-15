@@ -3,8 +3,8 @@
 all: run
 
 .env_setup:
-	virtualenv --no-site-packages env
-	env/bin/pip install -U flask ipython
+	virtualenv --no-site-packages -p python2.7 env
+	env/bin/pip install -U flask flask_sockets ipython gunicorn
 	touch $@
 
 run: .env_setup
