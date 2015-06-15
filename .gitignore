@@ -1,3 +1,4 @@
 env/
 .env_setup
 __pycache__
+*.pyc
