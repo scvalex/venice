@@ -1,4 +1,4 @@
-from server import server
+from __future__ import print_function
 
 if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=8080, debug=True)
+    print("Use gunicorn instead.")

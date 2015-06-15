@@ -1,5 +1,8 @@
-from flask import Flask
+from __future__ import print_function
+
+from flask import Flask, send_from_directory
 from flask_sockets import Sockets
+import os
 
 app = Flask("venice-server")
 sockets = Sockets(app)
@@ -8,7 +11,13 @@ sockets = Sockets(app)
 def echo_socket(ws):
     while True:
         message = ws.receive()
+        print('echo:', message)
         ws.send(message)
 
-def run(**args):
-    app.run(**args)
+@app.route('/')
+def hello():
+    return 'Hello World!'
+
+@app.route('/console')
+def console():
+    return send_from_directory(os.path.join(os.getcwd(), 'server', 'static'), 'console.html')

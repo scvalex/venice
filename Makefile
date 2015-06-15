@@ -8,7 +8,7 @@ all: run
 	touch $@
 
 run: .env_setup
-	( . env/bin/activate && python venice.py server)
+	env/bin/gunicorn -k flask_sockets.worker server.server:app
 
 clean:
 	rm -f .env_setup
