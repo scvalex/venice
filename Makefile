@@ -1,12 +1,12 @@
-.PHONY: all build p test
+.PHONY: all
 
-all: build test
+all: .env_setup
 
-build:
-	cargo build
+.env_setup:
+	virtualenv --no-site-packages venv
+	venv/bin/pip install -U flask ipython
+	touch $@
 
-test:
-	cargo test
-
-p:
-	permamake.sh **/*.rs
+clean:
+	rm -f .env_setup
+	rm -rf venv/
