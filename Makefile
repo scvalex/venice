@@ -8,8 +8,9 @@ all: run
 	touch $@
 
 run: .env_setup
-	( . env/bin/activate && python run.py )
+	( . env/bin/activate && python venice.py server)
 
 clean:
 	rm -f .env_setup
 	rm -rf env/
+	find . -name '*.pyc' -delete

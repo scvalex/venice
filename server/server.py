@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sockets import Sockets
 
-app = Flask("venice")
+app = Flask("venice-server")
 sockets = Sockets(app)
 
 @sockets.route('/echo')
