@@ -3,7 +3,11 @@ var VeniceConsole = function(inputId, displayId) {
   this.input = $(inputId);
   this.display = $(displayId);
 
-  this.onCommand = function(command) {};
+  this.onCommandHandler = function(command) {};
+
+  this.onCommand = function(handler) {
+    this.onCommandHandler = handler;
+  };
 
   this.addSystemMessage = function(message) {
     this.text += '<p>System: ' + message + '</p>';
@@ -26,7 +30,7 @@ var VeniceConsole = function(inputId, displayId) {
     if (event.which == 13) {
       var command = self.input.val();
       self.addCommand(command);
-      self.onCommand(command);
+      self.onCommandHandler(command);
     }
   });
 
@@ -48,7 +52,8 @@ var VeniceConsole = function(inputId, displayId) {
     alert("socket closed");
   };
   ws.onmessage = function(msg) {
-   c.addSystemMessage(msg.data);
+    console.log(msg);
+    c.addSystemMessage(msg.data);
   }
 
   c.onCommand(function(command) {
