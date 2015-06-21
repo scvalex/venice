@@ -7,6 +7,9 @@ import os
 app = Flask("venice-server")
 sockets = Sockets(app)
 
+def send_from_root(d, f):
+    return send_from_directory(os.path.join(os.getcwd(), 'server', d), f)
+
 @sockets.route('/echo')
 def echo_socket(ws):
     while True:
@@ -20,9 +23,12 @@ def hello():
 
 @app.route('/console')
 def console():
-    return send_from_directory(os.path.join(os.getcwd(), 'server', 'static'), 'console.html')
+    return send_from_root('static', 'console.html')
 
 @app.route('/js/<path:path>')
 def send_js(path):
-    return send_from_directory(os.path.join(os.getcwd(), 'server', 'js'), path)
+    return send_from_root('js', path)
 
+@app.route('/css/<path:path>')
+def send_css(path):
+    return send_from_root('css', path)

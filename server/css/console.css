@@ -1,0 +1,18 @@
+#console_display {
+  background-color: black;
+  color: white;
+  width: 100%;
+  overflow-x:hidden;
+  overflow-y:visible;
+  height:300px;
+}
+
+#console_display p {
+  margin: 0px 0px 0px 0px;
+}
+
+#console_input {
+  background-color: #303030;
+  color: white;
+  width: 100%;
+}
