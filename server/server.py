@@ -21,3 +21,8 @@ def hello():
 @app.route('/console')
 def console():
     return send_from_directory(os.path.join(os.getcwd(), 'server', 'static'), 'console.html')
+
+@app.route('/js/<path:path>')
+def send_js(path):
+    return send_from_directory(os.path.join(os.getcwd(), 'server', 'js'), path)
+

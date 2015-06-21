@@ -1,18 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script type="text/javascript">
-       var ws = new WebSocket("ws://localhost:8000/echo");
-       ws.onopen = function() {
-           ws.send("socket open");
-       };
-       ws.onclose = function(evt) {
-           alert("socket closed");
-       };
-       ws.onmessage = function(msg) {
-           console.log(msg);
-       }
-    </script>
+  <script type="text/javascript" src="/js/console.js"></script>
   </head>
   <body>
     <h1>Console</h1>
